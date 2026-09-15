@@ -7,10 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- One-time Accessibility permission request used to detect menu bar status items on macOS 27+
-
 ### Changed
 
 - Transitioned project to open source under AGPL v3 license
@@ -20,8 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Menu bar groups not shown on macOS 27, where status items are no longer backed by Control Center
-  windows; they are now read through the Accessibility API
+- Menu bar group sizes on macOS 27: system status items report only their glyph width, so adjacent
+  items are now tiled to match the full-width buttons of third-party items
 
 
 

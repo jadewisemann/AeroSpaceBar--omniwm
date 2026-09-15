@@ -83,8 +83,119 @@ final class MenuBarItemsAccessibilityReaderTests: XCTestCase {
             displayBounds: displayBounds
         )
 
-        // Then the frame spans the full menu bar height and keeps its horizontal extent
-        expect(items.first?.frame) == CGRect(x: 1_327, y: 0, width: 24, height: menuBarHeight)
+        // Then the frame spans the full menu bar height and gains the outer padding on both sides
+        expect(items.first?.frame) == CGRect(x: 1_319, y: 0, width: 40, height: menuBarHeight)
+    }
+
+    func testSplitsGapsBetweenAdjacentItemsAtMidpoint() {
+        // Given two glyph-only system items separated by a 16pt gap
+        let rawItems = [
+            MenuBarItemsAccessibilityReader.RawItem(
+                ownerIdentifier: "left",
+                index: 0,
+                frame: CGRect(x: 1_513, y: 0, width: 26, height: 39)
+            ),
+            MenuBarItemsAccessibilityReader.RawItem(
+                ownerIdentifier: "right",
+                index: 0,
+                frame: CGRect(x: 1_555, y: 0, width: 22, height: 39)
+            )
+        ]
+
+        // When normalizing
+        let items = MenuBarItemsAccessibilityReader.normalizedItems(
+            rawItems: rawItems,
+            menuBarHeight: menuBarHeight,
+            displayBounds: displayBounds
+        )
+
+        // Then both items meet at the midpoint of the gap
+        expect(self.frame(of: "left#0", in: items)?.maxX) == 1_547
+        expect(self.frame(of: "right#0", in: items)?.minX) == 1_547
+    }
+
+    func testSplitsOverlapsBetweenAdjacentItemsAtMidpoint() {
+        // Given two third-party items whose buttons overlap by 2pt
+        let rawItems = [
+            MenuBarItemsAccessibilityReader.RawItem(
+                ownerIdentifier: "left",
+                index: 0,
+                frame: CGRect(x: 1_245, y: 7.5, width: 41, height: 24)
+            ),
+            MenuBarItemsAccessibilityReader.RawItem(
+                ownerIdentifier: "right",
+                index: 0,
+                frame: CGRect(x: 1_284, y: 7.5, width: 38, height: 24)
+            )
+        ]
+
+        // When normalizing
+        let items = MenuBarItemsAccessibilityReader.normalizedItems(
+            rawItems: rawItems,
+            menuBarHeight: menuBarHeight,
+            displayBounds: displayBounds
+        )
+
+        // Then both items are trimmed back to the midpoint of the overlap
+        expect(self.frame(of: "left#0", in: items)?.maxX) == 1_285
+        expect(self.frame(of: "right#0", in: items)?.minX) == 1_285
+    }
+
+    func testCapsPaddingBetweenDistantItems() {
+        // Given two items far apart
+        let rawItems = [
+            MenuBarItemsAccessibilityReader.RawItem(
+                ownerIdentifier: "left",
+                index: 0,
+                frame: CGRect(x: 1_000, y: 0, width: 20, height: 39)
+            ),
+            MenuBarItemsAccessibilityReader.RawItem(
+                ownerIdentifier: "right",
+                index: 0,
+                frame: CGRect(x: 1_100, y: 0, width: 20, height: 39)
+            )
+        ]
+
+        // When normalizing
+        let items = MenuBarItemsAccessibilityReader.normalizedItems(
+            rawItems: rawItems,
+            menuBarHeight: menuBarHeight,
+            displayBounds: displayBounds
+        )
+
+        // Then each item only gains the maximum padding instead of bridging the gap
+        expect(self.frame(of: "left#0", in: items)) == CGRect(x: 992, y: 0, width: 36, height: menuBarHeight)
+        expect(self.frame(of: "right#0", in: items)) == CGRect(x: 1_092, y: 0, width: 36, height: menuBarHeight)
+    }
+
+    func testClampsPaddingToDisplayBounds() {
+        // Given an item close to the right edge of the display
+        let rawItems = [
+            MenuBarItemsAccessibilityReader.RawItem(
+                ownerIdentifier: "edge",
+                index: 0,
+                frame: CGRect(x: 1_780, y: 0, width: 16, height: 39)
+            )
+        ]
+
+        // When normalizing
+        let items = MenuBarItemsAccessibilityReader.normalizedItems(
+            rawItems: rawItems,
+            menuBarHeight: menuBarHeight,
+            displayBounds: displayBounds
+        )
+
+        // Then the trailing padding stops at the display edge
+        expect(items.first?.frame) == CGRect(x: 1_772, y: 0, width: 28, height: menuBarHeight)
+    }
+
+    /// Returns the frame of the item with the given identifier.
+    /// - Parameters:
+    ///   - identifier: The item identifier to look up.
+    ///   - items: The normalized items.
+    /// - Returns: The item frame, or `nil` if no item has the identifier.
+    private func frame(of identifier: String, in items: [MenuBarApp]) -> CGRect? {
+        items.first { $0.id == identifier }?.frame
     }
 
     func testSortsItemsFromRightToLeft() {

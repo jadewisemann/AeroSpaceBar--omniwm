@@ -50,6 +50,13 @@ actor MenuBarItemsAccessibilityReader {
     /// How often every running application is re-examined for an extras menu bar.
     private static let ownerDiscoveryInterval: Duration = .seconds(5)
 
+    /// Maximum horizontal padding, in points, added on each side of a status item frame.
+    ///
+    /// macOS 27 reports system status items with their glyph width only and leaves a 16pt gap between them,
+    /// while third-party items report their full button width. Half of that standard gap is the padding a
+    /// glyph-only item needs on each side to match a full button.
+    private static let maximumItemPadding: CGFloat = 8
+
     /// Applications that exposed an extras menu bar during the last discovery pass.
     private var itemOwners: [ItemOwner] = []
 
@@ -91,6 +98,11 @@ actor MenuBarItemsAccessibilityReader {
     /// Items hidden by the system are reported outside the menu bar strip (for example at the bottom-left
     /// of the screen) and are dropped. System items span the full menu bar height while third-party items
     /// report a shorter, vertically centered frame, so all frames are normalized to the full menu bar height.
+    ///
+    /// Horizontal extents are inconsistent too: system items report only their glyph width with gaps between
+    /// them, while third-party items report their full button width and may overlap their neighbors. Adjacent
+    /// items are therefore tiled so they meet at the midpoint of the gap or overlap between them, with the
+    /// padding on each side capped at `maximumItemPadding`, matching the contiguous item windows of macOS 26.
     /// - Parameters:
     ///   - rawItems: The status items read from the Accessibility API.
     ///   - menuBarHeight: The current menu bar height.
@@ -103,7 +115,7 @@ actor MenuBarItemsAccessibilityReader {
     ) -> [MenuBarApp] {
         guard menuBarHeight > 0 else { return [] }
 
-        return rawItems
+        let visibleItems = rawItems
             .filter { item in
                 item.frame.width > 0 &&
                     item.frame.minY >= displayBounds.minY &&
@@ -111,18 +123,42 @@ actor MenuBarItemsAccessibilityReader {
                     item.frame.minX >= displayBounds.minX &&
                     item.frame.maxX <= displayBounds.maxX
             }
-            .map { item in
-                MenuBarApp(
-                    id: "\(item.ownerIdentifier)#\(item.index)",
+            .sorted { $0.frame.minX < $1.frame.minX }
+
+        return visibleItems.indices
+            .map { index in
+                let frame = visibleItems[index].frame
+                let leadingPadding = index > 0
+                    ? padding(between: visibleItems[index - 1].frame, and: frame)
+                    : maximumItemPadding
+                let trailingPadding = index < visibleItems.count - 1
+                    ? padding(between: frame, and: visibleItems[index + 1].frame)
+                    : maximumItemPadding
+                let tiledMinX = max(frame.minX - leadingPadding, displayBounds.minX)
+                let tiledMaxX = min(frame.maxX + trailingPadding, displayBounds.maxX)
+                let hasTiledWidth = tiledMaxX > tiledMinX
+
+                return MenuBarApp(
+                    id: "\(visibleItems[index].ownerIdentifier)#\(visibleItems[index].index)",
                     frame: CGRect(
-                        x: item.frame.minX,
+                        x: hasTiledWidth ? tiledMinX : frame.minX,
                         y: displayBounds.minY,
-                        width: item.frame.width,
+                        width: hasTiledWidth ? tiledMaxX - tiledMinX : frame.width,
                         height: menuBarHeight
                     )
                 )
             }
             .sorted { $0.frame.origin.x > $1.frame.origin.x }
+    }
+
+    /// Returns the padding two adjacent items each receive so that they meet at the midpoint between them.
+    /// - Parameters:
+    ///   - leadingFrame: The frame of the item on the left.
+    ///   - trailingFrame: The frame of the item on the right.
+    /// - Returns: Half the gap between the frames capped at `maximumItemPadding`, or a negative value that
+    ///   trims both items back to the midpoint when they overlap.
+    private static func padding(between leadingFrame: CGRect, and trailingFrame: CGRect) -> CGFloat {
+        min((trailingFrame.minX - leadingFrame.maxX) / 2, maximumItemPadding)
     }
 
     /// Re-examines every running application for an extras menu bar when the discovery interval elapsed.
