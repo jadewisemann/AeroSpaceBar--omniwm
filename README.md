@@ -53,6 +53,11 @@ the menu bar.
     event stream over its unix socket, so the UI updates the moment something changes and the app
     never modifies your `aerospace.toml`. On older versions it falls back to the legacy path, which
     installs `on-focus-changed` / `exec-on-workspace-change` callbacks into your config and polls.
+- **Accessibility permission** (macOS 27+, needed for menu bar groups): macOS 27 no longer exposes
+  menu bar status items as windows, so AeroSpaceBar reads their positions through the Accessibility
+  API. The app asks once when groups are enabled; you can also grant it later in
+  System Settings → Privacy & Security → Accessibility.
+- **Screen Recording permission** (optional): used to capture the wallpaper behind the menu bar.
 
 > [!NOTE]
 > By using AeroSpaceBar, you acknowledge that it's

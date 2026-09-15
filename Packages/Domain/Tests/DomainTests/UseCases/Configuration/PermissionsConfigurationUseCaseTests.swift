@@ -10,6 +10,8 @@ import XCTest
 /// These tests verify:
 /// - GetHasAskedForScreenCapturePermissionsUseCase
 /// - SetHasAskedForScreenCapturePermissionsUseCase
+/// - GetHasAskedForAccessibilityPermissionsUseCase
+/// - SetHasAskedForAccessibilityPermissionsUseCase
 @MainActor
 final class PermissionsConfigurationUseCaseTests: XCTestCase {
     private var mockGateway: MockConfigurationGateway?
@@ -66,5 +68,46 @@ final class PermissionsConfigurationUseCaseTests: XCTestCase {
         // Then
         expect(mockGateway.setHasAskedForScreenCapturePermissionsCalls.count) == 1
         expect(mockGateway.setHasAskedForScreenCapturePermissionsCalls.first) == true
+    }
+
+    func testGetHasAskedForAccessibilityPermissions() async {
+        guard let mockGateway, var cancellables else {
+            fail("Test dependencies not initialized")
+            return
+        }
+
+        // Given
+        mockGateway.setHasAskedForAccessibilityPermissions(true)
+        let useCase = GetHasAskedForAccessibilityPermissionsUseCase(configurationGateway: mockGateway)
+
+        // When
+        var result: Bool?
+        useCase.execute()
+            .sink { value in
+                result = value
+            }
+            .store(in: &cancellables)
+
+        try? await Task.sleep(for: .milliseconds(100))
+
+        // Then
+        expect(result) == true
+    }
+
+    func testSetHasAskedForAccessibilityPermissions() async {
+        guard let mockGateway else {
+            fail("Test dependencies not initialized")
+            return
+        }
+
+        // Given
+        let useCase = SetHasAskedForAccessibilityPermissionsUseCase(configurationGateway: mockGateway)
+
+        // When
+        await useCase.execute(value: true)
+
+        // Then
+        expect(mockGateway.setHasAskedForAccessibilityPermissionsCalls.count) == 1
+        expect(mockGateway.setHasAskedForAccessibilityPermissionsCalls.first) == true
     }
 }

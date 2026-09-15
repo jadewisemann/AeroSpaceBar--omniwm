@@ -64,19 +64,42 @@ public final class SystemMenuBarRepository: SystemMenuBarGateway {
     /// Cancellable for the has asked for permissions publisher subscription.
     private var hasAskedForPermissionsCancellable: AnyCancellable?
 
+    /// Use case for checking if user has been asked for Accessibility permissions.
+    private let getHasAskedForAccessibilityPermissionsUseCase: GetHasAskedForAccessibilityPermissionsUseCase
+
+    /// Use case for setting whether user has been asked for Accessibility permissions.
+    private let setHasAskedForAccessibilityPermissionsUseCase: SetHasAskedForAccessibilityPermissionsUseCase
+
+    /// Cancellable for the has asked for Accessibility permissions publisher subscription.
+    private var hasAskedForAccessibilityPermissionsCancellable: AnyCancellable?
+
+    /// Reader for menu bar status items exposed through the Accessibility API (macOS 27+).
+    private let accessibilityReader = MenuBarItemsAccessibilityReader()
+
+    /// The in-flight Accessibility status item scan, used to avoid overlapping scans.
+    private var accessibilityScanTask: Task<Void, Never>?
+
     /// Initializes the system menu bar repository.
     /// - Parameters:
     ///   - getShowGroupsUseCase: The use case for accessing show groups setting
     ///   - getHasAskedForScreenCapturePermissionsUseCase: The use case for checking permission request status
     ///   - setHasAskedForScreenCapturePermissionsUseCase: The use case for setting permission request status
+    ///   - getHasAskedForAccessibilityPermissionsUseCase: The use case for checking Accessibility permission
+    ///     request status
+    ///   - setHasAskedForAccessibilityPermissionsUseCase: The use case for setting Accessibility permission
+    ///     request status
     public init(
         getShowGroupsUseCase: GetShowGroupsUseCase,
         getHasAskedForScreenCapturePermissionsUseCase: GetHasAskedForScreenCapturePermissionsUseCase,
-        setHasAskedForScreenCapturePermissionsUseCase: SetHasAskedForScreenCapturePermissionsUseCase
+        setHasAskedForScreenCapturePermissionsUseCase: SetHasAskedForScreenCapturePermissionsUseCase,
+        getHasAskedForAccessibilityPermissionsUseCase: GetHasAskedForAccessibilityPermissionsUseCase,
+        setHasAskedForAccessibilityPermissionsUseCase: SetHasAskedForAccessibilityPermissionsUseCase
     ) {
         self.getShowGroupsUseCase = getShowGroupsUseCase
         self.getHasAskedForScreenCapturePermissionsUseCase = getHasAskedForScreenCapturePermissionsUseCase
         self.setHasAskedForScreenCapturePermissionsUseCase = setHasAskedForScreenCapturePermissionsUseCase
+        self.getHasAskedForAccessibilityPermissionsUseCase = getHasAskedForAccessibilityPermissionsUseCase
+        self.setHasAskedForAccessibilityPermissionsUseCase = setHasAskedForAccessibilityPermissionsUseCase
 
         setupShowGroupsSubscription()
         setupScreenStateObservers()
@@ -498,13 +521,70 @@ public final class SystemMenuBarRepository: SystemMenuBarGateway {
     /// - Parameter windows: The current list of on-screen windows.
     private func recognizeSystemMenuBarApps(windows: [WindowInfo]) {
         let foundApps: [MenuBarApp] = findMenuBarApplications(windows: windows)
-        let currentApps: [MenuBarApp] = menuBarAppsSubject.value
 
-        // Only update if the apps have changed
-        if foundApps != currentApps {
-            Logger.debug("Menu bar apps updated: \(foundApps.count) apps found", category: Logger.userInterface)
-            menuBarAppsSubject.send(foundApps)
+        // macOS 27+ no longer backs status items with individual windows, so fall back to Accessibility.
+        guard !foundApps.isEmpty else {
+            recognizeSystemMenuBarAppsUsingAccessibility()
+            return
         }
+
+        publishMenuBarApps(foundApps)
+    }
+
+    /// Recognizes menu bar applications through the Accessibility API.
+    ///
+    /// Used when the window list exposes no status item windows (macOS 27+). Requests Accessibility
+    /// permissions once if the app is not trusted yet. The scan runs off the main actor and never overlaps
+    /// with a previous scan that is still in flight.
+    private func recognizeSystemMenuBarAppsUsingAccessibility() {
+        guard MenuBarItemsAccessibilityReader.isTrusted else {
+            checkAndRequestAccessibilityPermissionsIfNeeded()
+            return
+        }
+
+        guard accessibilityScanTask == nil else { return }
+
+        let reader = accessibilityReader
+        let menuBarHeight = menuBarHeightSubject.value
+        let displayBounds = CGDisplayBounds(CGMainDisplayID())
+
+        accessibilityScanTask = Task { [weak self] in
+            let foundApps = await reader.readItems(menuBarHeight: menuBarHeight, displayBounds: displayBounds)
+            self?.publishMenuBarApps(foundApps)
+            self?.accessibilityScanTask = nil
+        }
+    }
+
+    /// Publishes the recognized menu bar applications if they differ from the current value.
+    /// - Parameter foundApps: The recognized menu bar applications, sorted from right to left.
+    private func publishMenuBarApps(_ foundApps: [MenuBarApp]) {
+        guard foundApps != menuBarAppsSubject.value else { return }
+
+        Logger.debug("Menu bar apps updated: \(foundApps.count) apps found", category: Logger.userInterface)
+        menuBarAppsSubject.send(foundApps)
+    }
+
+    /// Requests Accessibility permissions if the user has never been asked before.
+    ///
+    /// Subscribes only once; the persisted flag guarantees the system prompt is shown a single time.
+    private func checkAndRequestAccessibilityPermissionsIfNeeded() {
+        guard hasAskedForAccessibilityPermissionsCancellable == nil else { return }
+
+        hasAskedForAccessibilityPermissionsCancellable = getHasAskedForAccessibilityPermissionsUseCase.execute()
+            .sink { [weak self] hasAsked in
+                guard let self, !hasAsked else { return }
+
+                Task { @MainActor [weak self] in
+                    await self?.requestAccessibilityPermissions()
+                }
+            }
+    }
+
+    /// Marks Accessibility permissions as requested and shows the system prompt.
+    private func requestAccessibilityPermissions() async {
+        await setHasAskedForAccessibilityPermissionsUseCase.execute(value: true)
+        MenuBarItemsAccessibilityReader.requestTrust()
+        Logger.info("Requested Accessibility permissions for menu bar status items", category: Logger.config)
     }
 
     /// Finds the desktop wallpaper window for the main display.
@@ -605,7 +685,8 @@ private struct WindowInfo {
     }
 
     /// A Boolean value that indicates whether the window belongs to the Control Center.
-    /// The Control Center owns all system menu bar app icons (e.g., WiFi, battery, etc.).
+    /// Up to macOS 26 the Control Center owns all system menu bar app icons (e.g., WiFi, battery, etc.).
+    /// On macOS 27+ status items have no windows and are read through Accessibility instead.
     /// - Returns: True if the window belongs to the Control Center process, false otherwise.
     var isControlCenterWindow: Bool {
         ownerName == "Control Center"

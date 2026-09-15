@@ -54,7 +54,9 @@ public final class DependencyContainer {
     private lazy var systemMenuBarGateway: SystemMenuBarGateway = SystemMenuBarRepository(
         getShowGroupsUseCase: makeGetShowGroupsUseCase(),
         getHasAskedForScreenCapturePermissionsUseCase: makeGetHasAskedForScreenCapturePermissionsUseCase(),
-        setHasAskedForScreenCapturePermissionsUseCase: makeSetHasAskedForScreenCapturePermissionsUseCase()
+        setHasAskedForScreenCapturePermissionsUseCase: makeSetHasAskedForScreenCapturePermissionsUseCase(),
+        getHasAskedForAccessibilityPermissionsUseCase: makeGetHasAskedForAccessibilityPermissionsUseCase(),
+        setHasAskedForAccessibilityPermissionsUseCase: makeSetHasAskedForAccessibilityPermissionsUseCase()
     )
 
     /// The keyboard shortcuts gateway for monitoring keyboard events.
@@ -240,7 +242,8 @@ public final class DependencyContainer {
             setCheckoutEnvironmentUseCase: makeSetCheckoutEnvironmentUseCase(),
             getLicenseInfoUseCase: makeGetLicenseInfoUseCase(),
             resetLicenseFeatureFlagsUseCase: makeResetLicenseFeatureFlagsUseCase(),
-            getHasAskedForScreenCapturePermissionsUseCase: makeGetHasAskedForScreenCapturePermissionsUseCase()
+            getHasAskedForScreenCapturePermissionsUseCase: makeGetHasAskedForScreenCapturePermissionsUseCase(),
+            getHasAskedForAccessibilityPermissionsUseCase: makeGetHasAskedForAccessibilityPermissionsUseCase()
         )
     #endif
 
@@ -717,6 +720,18 @@ public final class DependencyContainer {
     /// - Returns: A new SetHasAskedForScreenCapturePermissionsUseCase instance
     func makeSetHasAskedForScreenCapturePermissionsUseCase() -> SetHasAskedForScreenCapturePermissionsUseCase {
         SetHasAskedForScreenCapturePermissionsUseCase(configurationGateway: configurationGateway)
+    }
+
+    /// Creates a new GetHasAskedForAccessibilityPermissionsUseCase instance.
+    /// - Returns: A new GetHasAskedForAccessibilityPermissionsUseCase instance
+    func makeGetHasAskedForAccessibilityPermissionsUseCase() -> GetHasAskedForAccessibilityPermissionsUseCase {
+        GetHasAskedForAccessibilityPermissionsUseCase(configurationGateway: configurationGateway)
+    }
+
+    /// Creates a new SetHasAskedForAccessibilityPermissionsUseCase instance.
+    /// - Returns: A new SetHasAskedForAccessibilityPermissionsUseCase instance
+    func makeSetHasAskedForAccessibilityPermissionsUseCase() -> SetHasAskedForAccessibilityPermissionsUseCase {
+        SetHasAskedForAccessibilityPermissionsUseCase(configurationGateway: configurationGateway)
     }
 
     // MARK: - System Use Cases

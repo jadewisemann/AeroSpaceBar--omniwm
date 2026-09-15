@@ -22,6 +22,7 @@ public final class MockConfigurationGateway: ConfigurationGateway {
     public private(set) var setLogLevelCalls: [Logger.Level] = []
     public private(set) var setConfigFilePathCalls: [String] = []
     public private(set) var setHasAskedForScreenCapturePermissionsCalls: [Bool] = []
+    public private(set) var setHasAskedForAccessibilityPermissionsCalls: [Bool] = []
     public private(set) var setSpacesColorPropertiesCalls: [[ColorProperties]] = []
     public private(set) var setSpacesGeometricPropertiesCalls: [[GeometricProperties]] = []
     public private(set) var setSpacesEffectPropertiesCalls: [[EffectProperties]] = []
@@ -65,6 +66,7 @@ public final class MockConfigurationGateway: ConfigurationGateway {
     public var currentAeroSpaceVersionToEmit: String? = "v0.13.0"
     public var configFilePathToEmit: String = "~/.aerospace.toml"
     public var hasAskedForScreenCapturePermissionsToEmit: Bool = false
+    public var hasAskedForAccessibilityPermissionsToEmit: Bool = false
     public var spacesColorPropertiesToEmit: [ColorProperties] = []
     public var spacesGeometricPropertiesToEmit: [GeometricProperties] = []
     public var spacesEffectPropertiesToEmit: [EffectProperties] = []
@@ -112,6 +114,7 @@ public final class MockConfigurationGateway: ConfigurationGateway {
     private let currentAeroSpaceVersionSubject: CurrentValueSubject<String?, Never>
     private let configFilePathSubject: CurrentValueSubject<String, Never>
     private let hasAskedForScreenCapturePermissionsSubject: CurrentValueSubject<Bool, Never>
+    private let hasAskedForAccessibilityPermissionsSubject: CurrentValueSubject<Bool, Never>
     private let spacesColorPropertiesSubject: CurrentValueSubject<[ColorProperties], Never>
     private let spacesGeometricPropertiesSubject: CurrentValueSubject<[GeometricProperties], Never>
     private let spacesEffectPropertiesSubject: CurrentValueSubject<[EffectProperties], Never>
@@ -146,6 +149,7 @@ public final class MockConfigurationGateway: ConfigurationGateway {
         currentAeroSpaceVersionSubject = CurrentValueSubject(currentAeroSpaceVersionToEmit)
         configFilePathSubject = CurrentValueSubject(configFilePathToEmit)
         hasAskedForScreenCapturePermissionsSubject = CurrentValueSubject(hasAskedForScreenCapturePermissionsToEmit)
+        hasAskedForAccessibilityPermissionsSubject = CurrentValueSubject(hasAskedForAccessibilityPermissionsToEmit)
         spacesColorPropertiesSubject = CurrentValueSubject(spacesColorPropertiesToEmit)
         spacesGeometricPropertiesSubject = CurrentValueSubject(spacesGeometricPropertiesToEmit)
         spacesEffectPropertiesSubject = CurrentValueSubject(spacesEffectPropertiesToEmit)
@@ -234,6 +238,10 @@ public final class MockConfigurationGateway: ConfigurationGateway {
 
     public var hasAskedForScreenCapturePermissionsPublisher: AnyPublisher<Bool, Never> {
         hasAskedForScreenCapturePermissionsSubject.eraseToAnyPublisher()
+    }
+
+    public var hasAskedForAccessibilityPermissionsPublisher: AnyPublisher<Bool, Never> {
+        hasAskedForAccessibilityPermissionsSubject.eraseToAnyPublisher()
     }
 
     public var spacesColorPropertiesPublisher: AnyPublisher<[ColorProperties], Never> {
@@ -390,6 +398,11 @@ public final class MockConfigurationGateway: ConfigurationGateway {
         hasAskedForScreenCapturePermissionsSubject.send(value)
     }
 
+    public func setHasAskedForAccessibilityPermissions(_ value: Bool) {
+        setHasAskedForAccessibilityPermissionsCalls.append(value)
+        hasAskedForAccessibilityPermissionsSubject.send(value)
+    }
+
     public func setSpacesColorProperties(_ value: [ColorProperties]) {
         setSpacesColorPropertiesCalls.append(value)
         spacesColorPropertiesSubject.send(value)
@@ -518,6 +531,7 @@ public final class MockConfigurationGateway: ConfigurationGateway {
         setLogLevelCalls.removeAll()
         setConfigFilePathCalls.removeAll()
         setHasAskedForScreenCapturePermissionsCalls.removeAll()
+        setHasAskedForAccessibilityPermissionsCalls.removeAll()
         setSpacesColorPropertiesCalls.removeAll()
         setSpacesGeometricPropertiesCalls.removeAll()
         setSpacesEffectPropertiesCalls.removeAll()

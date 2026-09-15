@@ -879,6 +879,32 @@ final class DependencyContainerTests: XCTestCase {
         expect(useCase).toNot(beNil())
     }
 
+    func testMakeGetHasAskedForAccessibilityPermissionsUseCase() {
+        guard let container else {
+            fail("Container not initialized")
+            return
+        }
+
+        // When creating GetHasAskedForAccessibilityPermissionsUseCase
+        let useCase = container.makeGetHasAskedForAccessibilityPermissionsUseCase()
+
+        // Then should return valid instance
+        expect(useCase).toNot(beNil())
+    }
+
+    func testMakeSetHasAskedForAccessibilityPermissionsUseCase() {
+        guard let container else {
+            fail("Container not initialized")
+            return
+        }
+
+        // When creating SetHasAskedForAccessibilityPermissionsUseCase
+        let useCase = container.makeSetHasAskedForAccessibilityPermissionsUseCase()
+
+        // Then should return valid instance
+        expect(useCase).toNot(beNil())
+    }
+
     // MARK: - System Use Case Factory Tests
 
     func testMakeGetEnablePerformanceMetricsUseCase() {

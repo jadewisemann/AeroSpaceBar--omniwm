@@ -355,6 +355,7 @@ final class MockConfigurationGateway: ConfigurationGateway {
     private let currentAeroSpaceVersionSubject = CurrentValueSubject<String?, Never>("v1.0.0")
     private let configFilePathSubject = CurrentValueSubject<String, Never>("~/.config/aerospacebar/aerospacebar.toml")
     private let hasAskedForScreenCapturePermissionsSubject = CurrentValueSubject<Bool, Never>(false)
+    private let hasAskedForAccessibilityPermissionsSubject = CurrentValueSubject<Bool, Never>(false)
     private let spacesColorPropertiesSubject = CurrentValueSubject<[ColorProperties], Never>([])
     private let spacesGeometricPropertiesSubject = CurrentValueSubject<[GeometricProperties], Never>([])
     private let spacesEffectPropertiesSubject = CurrentValueSubject<[EffectProperties], Never>([])
@@ -470,6 +471,10 @@ final class MockConfigurationGateway: ConfigurationGateway {
 
     var hasAskedForScreenCapturePermissionsPublisher: AnyPublisher<Bool, Never> {
         hasAskedForScreenCapturePermissionsSubject.eraseToAnyPublisher()
+    }
+
+    var hasAskedForAccessibilityPermissionsPublisher: AnyPublisher<Bool, Never> {
+        hasAskedForAccessibilityPermissionsSubject.eraseToAnyPublisher()
     }
 
     var spacesColorPropertiesPublisher: AnyPublisher<[ColorProperties], Never> {
@@ -683,6 +688,14 @@ final class MockConfigurationGateway: ConfigurationGateway {
         }
 
         hasAskedForScreenCapturePermissionsSubject.send(value)
+    }
+
+    func setHasAskedForAccessibilityPermissions(_ value: Bool) {
+        if value == hasAskedForAccessibilityPermissionsSubject.value {
+            return
+        }
+
+        hasAskedForAccessibilityPermissionsSubject.send(value)
     }
 
     func setSpacesColorProperties(_ value: [ColorProperties]) {

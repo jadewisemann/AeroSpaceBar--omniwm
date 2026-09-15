@@ -162,6 +162,22 @@
                         .tag("developer-permissions-status-text")
                     }
                     .tag("developer-permissions-status")
+
+                    HStack {
+                        Image(systemName: viewModel
+                            .hasAskedForAccessibilityPermissions ? "checkmark.circle.fill" : "xmark.circle.fill"
+                        )
+                        .foregroundColor(viewModel.hasAskedForAccessibilityPermissions ? .green : .red)
+                        .tag("developer-accessibility-permissions-status-icon")
+
+                        Text(
+                            viewModel.hasAskedForAccessibilityPermissions
+                                ? LocalizedStringResource("User has been asked for Accessibility permissions")
+                                : LocalizedStringResource("User has not been asked for Accessibility permissions")
+                        )
+                        .tag("developer-accessibility-permissions-status-text")
+                    }
+                    .tag("developer-accessibility-permissions-status")
                 }
                 .tag("developer-permissions-section")
 

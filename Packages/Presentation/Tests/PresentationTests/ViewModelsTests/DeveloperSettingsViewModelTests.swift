@@ -34,6 +34,7 @@
         private var getLicenseInfoUseCase: GetLicenseInfoUseCase?
         private var resetLicenseFeatureFlagsUseCase: ResetLicenseFeatureFlagsUseCase?
         private var getHasAskedForScreenCapturePermissionsUseCase: GetHasAskedForScreenCapturePermissionsUseCase?
+        private var getHasAskedForAccessibilityPermissionsUseCase: GetHasAskedForAccessibilityPermissionsUseCase?
 
         override func setUp() async throws {
             try await super.setUp()
@@ -83,6 +84,8 @@
             resetLicenseFeatureFlagsUseCase = ResetLicenseFeatureFlagsUseCase(gateway: licenseGateway)
             getHasAskedForScreenCapturePermissionsUseCase =
                 GetHasAskedForScreenCapturePermissionsUseCase(configurationGateway: configurationGateway)
+            getHasAskedForAccessibilityPermissionsUseCase =
+                GetHasAskedForAccessibilityPermissionsUseCase(configurationGateway: configurationGateway)
 
             guard
                 let getFeatureFlagsUseCase,
@@ -97,7 +100,8 @@
                 let setCheckoutEnvironmentUseCase,
                 let getLicenseInfoUseCase,
                 let resetLicenseFeatureFlagsUseCase,
-                let getHasAskedForScreenCapturePermissionsUseCase
+                let getHasAskedForScreenCapturePermissionsUseCase,
+                let getHasAskedForAccessibilityPermissionsUseCase
             else {
                 XCTFail("Use cases should be initialized")
                 return
@@ -116,7 +120,8 @@
                 setCheckoutEnvironmentUseCase: setCheckoutEnvironmentUseCase,
                 getLicenseInfoUseCase: getLicenseInfoUseCase,
                 resetLicenseFeatureFlagsUseCase: resetLicenseFeatureFlagsUseCase,
-                getHasAskedForScreenCapturePermissionsUseCase: getHasAskedForScreenCapturePermissionsUseCase
+                getHasAskedForScreenCapturePermissionsUseCase: getHasAskedForScreenCapturePermissionsUseCase,
+                getHasAskedForAccessibilityPermissionsUseCase: getHasAskedForAccessibilityPermissionsUseCase
             )
         }
 
@@ -139,6 +144,7 @@
             getLicenseInfoUseCase = nil
             resetLicenseFeatureFlagsUseCase = nil
             getHasAskedForScreenCapturePermissionsUseCase = nil
+            getHasAskedForAccessibilityPermissionsUseCase = nil
             try await super.tearDown()
         }
 

@@ -25,6 +25,12 @@ final class SystemMenuBarRepositoryTests: XCTestCase {
             ),
             setHasAskedForScreenCapturePermissionsUseCase: SetHasAskedForScreenCapturePermissionsUseCase(
                 configurationGateway: gateway
+            ),
+            getHasAskedForAccessibilityPermissionsUseCase: GetHasAskedForAccessibilityPermissionsUseCase(
+                configurationGateway: gateway
+            ),
+            setHasAskedForAccessibilityPermissionsUseCase: SetHasAskedForAccessibilityPermissionsUseCase(
+                configurationGateway: gateway
             )
         )
     }

@@ -26,11 +26,12 @@ final class UserDefaultsKeysTests: XCTestCase {
         let allCases = UserDefaultsKeys.allCases
 
         // Then should have all cases
-        expect(allCases.count) == 5
+        expect(allCases.count) == 6
         expect(allCases.contains(.logLevel)) == true
         expect(allCases.contains(.enablePerformanceMetrics)) == true
         expect(allCases.contains(.configFilePath)) == true
         expect(allCases.contains(.hasAskedForScreenCapturePermissions)) == true
+        expect(allCases.contains(.hasAskedForAccessibilityPermissions)) == true
         expect(allCases.contains(.hasRemovedLegacyAeroSpaceCallbacks)) == true
     }
 
@@ -77,6 +78,18 @@ final class UserDefaultsKeysTests: XCTestCase {
 
         // Then should have correct format
         expect(key) == "com.aerospacebar.preferences.hasAskedForScreenCapturePermissions"
+        expect(key.hasPrefix("com.aerospacebar.preferences.")) == true
+    }
+
+    // MARK: - Accessibility Permission Keys Tests
+
+    func testHasAskedForAccessibilityPermissionsKey() {
+        // Given hasAskedForAccessibilityPermissions key
+        // When accessing raw value
+        let key = UserDefaultsKeys.hasAskedForAccessibilityPermissions.rawValue
+
+        // Then should have correct format
+        expect(key) == "com.aerospacebar.preferences.hasAskedForAccessibilityPermissions"
         expect(key.hasPrefix("com.aerospacebar.preferences.")) == true
     }
 

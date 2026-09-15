@@ -47,10 +47,15 @@ public final class ConfigurationRepository: ConfigurationGateway {
         ConfigurationDefaults.configFilePath
     )
 
-    /// Subject for tracking whether user has been asked for screen capture permissions.
-    private let hasAskedForScreenCapturePermissionsSubject = CurrentValueSubject<Bool, Never>(
-        UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasAskedForScreenCapturePermissions.rawValue)
-    )
+    /// Flag tracking whether user has been asked for screen capture permissions.
+    ///
+    /// Internal so `ConfigurationRepositoryPermissions.swift` can expose it through the gateway.
+    let hasAskedForScreenCapturePermissionsFlag = PersistedFlag(key: .hasAskedForScreenCapturePermissions)
+
+    /// Flag tracking whether user has been asked for Accessibility permissions.
+    ///
+    /// Internal so `ConfigurationRepositoryPermissions.swift` can expose it through the gateway.
+    let hasAskedForAccessibilityPermissionsFlag = PersistedFlag(key: .hasAskedForAccessibilityPermissions)
 
     /// Subject for current AeroSpace version.
     private let currentAeroSpaceVersionSubject = CurrentValueSubject<String?, Never>(
@@ -241,10 +246,6 @@ public final class ConfigurationRepository: ConfigurationGateway {
 
     public var configFilePathPublisher: AnyPublisher<String, Never> {
         configFilePathSubject.eraseToAnyPublisher()
-    }
-
-    public var hasAskedForScreenCapturePermissionsPublisher: AnyPublisher<Bool, Never> {
-        hasAskedForScreenCapturePermissionsSubject.eraseToAnyPublisher()
     }
 
     // MARK: - UI Configuration Publishers
@@ -772,16 +773,6 @@ public final class ConfigurationRepository: ConfigurationGateway {
         setupFileMonitoring()
     }
 
-    /// Sets whether the user has been asked for screen capture permissions.
-    public func setHasAskedForScreenCapturePermissions(_ value: Bool) {
-        if value == hasAskedForScreenCapturePermissionsSubject.value {
-            return
-        }
-
-        UserDefaults.standard.set(value, forKey: UserDefaultsKeys.hasAskedForScreenCapturePermissions.rawValue)
-        hasAskedForScreenCapturePermissionsSubject.send(value)
-    }
-
     // MARK: - UI Configuration Async Setters
 
     // Sets the vertical padding for the menu bar interface in points.
@@ -1153,6 +1144,7 @@ public final class ConfigurationRepository: ConfigurationGateway {
 
         setConfigFilePath(ConfigurationDefaults.configFilePath)
         setHasAskedForScreenCapturePermissions(false)
+        setHasAskedForAccessibilityPermissions(false)
         loadInitialAeroSpaceConfiguration()
         showWindowTitlesSubject.send(ConfigurationDefaults.showWindowTitles)
         focusWindowOnClickSubject.send(ConfigurationDefaults.focusWindowOnClick)

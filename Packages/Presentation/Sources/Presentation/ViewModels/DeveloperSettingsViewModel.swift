@@ -35,6 +35,9 @@
         /// Whether the user has been asked for screen capture permissions.
         @Published var hasAskedForScreenCapturePermissions: Bool
 
+        /// Whether the user has been asked for Accessibility permissions.
+        @Published var hasAskedForAccessibilityPermissions: Bool
+
         /// Use case for retrieving current feature flags.
         private let getFeatureFlagsUseCase: GetFeatureFlagsUseCase
 
@@ -74,6 +77,9 @@
         /// Use case for getting whether the user has been asked for screen capture permissions.
         private let getHasAskedForScreenCapturePermissionsUseCase: GetHasAskedForScreenCapturePermissionsUseCase
 
+        /// Use case for getting whether the user has been asked for Accessibility permissions.
+        private let getHasAskedForAccessibilityPermissionsUseCase: GetHasAskedForAccessibilityPermissionsUseCase
+
         /// Set of cancellable subscriptions for Combine publishers.
         private var cancellables = Set<AnyCancellable>()
 
@@ -95,6 +101,8 @@
         ///   - resetLicenseFeatureFlagsUseCase: Use case for resetting license feature flags
         ///   - getHasAskedForScreenCapturePermissionsUseCase: Use case for getting screen capture permission request
         /// status
+        ///   - getHasAskedForAccessibilityPermissionsUseCase: Use case for getting Accessibility permission request
+        /// status
         init(
             getFeatureFlagsUseCase: GetFeatureFlagsUseCase,
             setFeatureFlagsUseCase: SetFeatureFlagsUseCase,
@@ -108,7 +116,8 @@
             setCheckoutEnvironmentUseCase: SetCheckoutEnvironmentUseCase,
             getLicenseInfoUseCase: GetLicenseInfoUseCase,
             resetLicenseFeatureFlagsUseCase: ResetLicenseFeatureFlagsUseCase,
-            getHasAskedForScreenCapturePermissionsUseCase: GetHasAskedForScreenCapturePermissionsUseCase
+            getHasAskedForScreenCapturePermissionsUseCase: GetHasAskedForScreenCapturePermissionsUseCase,
+            getHasAskedForAccessibilityPermissionsUseCase: GetHasAskedForAccessibilityPermissionsUseCase
         ) {
             self.getFeatureFlagsUseCase = getFeatureFlagsUseCase
             self.setFeatureFlagsUseCase = setFeatureFlagsUseCase
@@ -123,6 +132,7 @@
             self.getLicenseInfoUseCase = getLicenseInfoUseCase
             self.resetLicenseFeatureFlagsUseCase = resetLicenseFeatureFlagsUseCase
             self.getHasAskedForScreenCapturePermissionsUseCase = getHasAskedForScreenCapturePermissionsUseCase
+            self.getHasAskedForAccessibilityPermissionsUseCase = getHasAskedForAccessibilityPermissionsUseCase
 
             featureFlags = getFeatureFlagsUseCase.execute().blockingFirst()
             enableLicensing = getEnableLicensingUseCase.execute().blockingFirst()
@@ -131,6 +141,8 @@
             checkoutEnvironment = getCheckoutEnvironmentUseCase.execute().blockingFirst()
             licenseInfo = getLicenseInfoUseCase.execute().blockingFirst()
             hasAskedForScreenCapturePermissions = getHasAskedForScreenCapturePermissionsUseCase.execute()
+                .blockingFirst()
+            hasAskedForAccessibilityPermissions = getHasAskedForAccessibilityPermissionsUseCase.execute()
                 .blockingFirst()
 
             setupSubscriptions()
@@ -282,6 +294,13 @@
             getHasAskedForScreenCapturePermissionsUseCase.execute()
                 .sink { [weak self] newValue in
                     self?.hasAskedForScreenCapturePermissions = newValue
+                }
+                .store(in: &cancellables)
+
+            // Subscribe to Accessibility permissions changes
+            getHasAskedForAccessibilityPermissionsUseCase.execute()
+                .sink { [weak self] newValue in
+                    self?.hasAskedForAccessibilityPermissions = newValue
                 }
                 .store(in: &cancellables)
         }

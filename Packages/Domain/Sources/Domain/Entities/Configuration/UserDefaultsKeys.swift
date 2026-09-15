@@ -28,6 +28,13 @@ public enum UserDefaultsKeys: String, CaseIterable {
     /// Whether the user has been asked for screen capture permissions.
     case hasAskedForScreenCapturePermissions = "com.aerospacebar.preferences.hasAskedForScreenCapturePermissions"
 
+    // MARK: - Accessibility Permissions
+
+    /// Whether the user has been asked for Accessibility permissions.
+    ///
+    /// Accessibility is needed on macOS 27+ to read menu bar status item frames for groups.
+    case hasAskedForAccessibilityPermissions = "com.aerospacebar.preferences.hasAskedForAccessibilityPermissions"
+
     // MARK: - AeroSpace Integration
 
     /// Whether the AeroSpace config callbacks installed by pre-subscription

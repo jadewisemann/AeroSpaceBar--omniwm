@@ -53,6 +53,9 @@ public protocol ConfigurationGateway {
     /// Publisher that emits whether the user has been asked for screen capture permissions.
     var hasAskedForScreenCapturePermissionsPublisher: AnyPublisher<Bool, Never> { get }
 
+    /// Publisher that emits whether the user has been asked for Accessibility permissions.
+    var hasAskedForAccessibilityPermissionsPublisher: AnyPublisher<Bool, Never> { get }
+
     // MARK: - UI Configuration Publishers
 
     /// Publisher that emits spaces configuration updates.
@@ -146,6 +149,10 @@ public protocol ConfigurationGateway {
     func setConfigFilePath(_ path: String) async
 
     func setHasAskedForScreenCapturePermissions(_ value: Bool) async
+
+    /// Sets whether the user has been asked for Accessibility permissions.
+    /// - Parameter value: Whether the Accessibility permission prompt has been shown
+    func setHasAskedForAccessibilityPermissions(_ value: Bool) async
 
     // MARK: - UI Configuration Async Setters
 
