@@ -7,6 +7,27 @@
         <description>Most recent changes with links to updates for AeroSpaceBar</description>
         <language>en</language>
         <item>
+            <title>Version 1.0.2</title>
+            <link>https://github.com/rdrkr/AeroSpaceBar/releases/tag/v1.0.2</link>
+            <pubDate>Tue, 15 Sep 2026 11:27:37 +0000</pubDate>
+            <sparkle:version>17</sparkle:version>
+            <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
+            <description>
+                <![CDATA[
+                    
+<h3>Fixed</h3>
+
+<ul>
+<li>restore menu bar groups on macOS 27 via Accessibility status item detection</li>
+                ]]>
+            </description>
+            <enclosure
+            url="https://github.com/rdrkr/AeroSpaceBar/releases/download/v1.0.2/AeroSpaceBar-v1.0.2.zip"
+            type="application/octet-stream"
+            sparkle:edSignature="HgLP3DjgtV/Q9fOq30DaxCxIRQ74j8sltQKGSd1F9pq0CoPnramk+X3vMjJhu6h8eDOwIypwbQrd73RGKQdADA==" length="11929447" />
+        </item>
+        <item>
             <title>Version 1.0.1</title>
             <link>https://github.com/rdrkr/AeroSpaceBar/releases/tag/v1.0.1</link>
             <pubDate>Tue, 15 Sep 2026 11:12:47 +0000</pubDate>
