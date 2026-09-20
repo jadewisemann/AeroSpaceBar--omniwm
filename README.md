@@ -14,7 +14,8 @@ and open the extracted app. Enable **Enable IPC** in OmniWM before testing works
 If macOS blocks this ad-hoc signed, non-notarized build, use System Settings → Privacy & Security →
 **Open Anyway** after attempting to launch it. Grant the app's requested Accessibility and Screen Recording permissions.
 
-The workflow runs the OmniWM integration tests and builds an Apple Silicon Release app on pushes to
+The workflow uses macOS 26 and Xcode 26.3 (including the original Icon Composer assets),
+runs the OmniWM integration tests, and builds an Apple Silicon Release app on pushes to
 `develop` or `codex/**`, or via **Run workflow**. Artifacts expire after 14 days; rerun the workflow
 to create a new download. It needs no signing secrets and does not publish a release or update a Homebrew tap.
 The inherited upstream Release workflow is disabled in this fork.

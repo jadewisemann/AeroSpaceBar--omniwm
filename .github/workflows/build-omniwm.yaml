@@ -15,7 +15,8 @@ concurrency:
 jobs:
   build:
     if: github.repository == 'jadewisemann/AeroSpaceBar--omniwm'
-    runs-on: macos-15
+    # Icon Composer assets need the macOS 26 asset runtime.
+    runs-on: macos-26
     timeout-minutes: 30
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
