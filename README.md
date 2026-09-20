@@ -1,5 +1,57 @@
 <!-- Copyright (c) 2026 AeroSpaceBar by Ronen Druker. -->
 
+> **OmniWM fork:** This checkout targets [OmniWM](https://github.com/OmniNull/OmniWM).
+> The original bar views, animations, styling, icon cache, and appearance preferences are reused.
+> Work is maintained in `jadewisemann/AeroSpaceBar--omniwm`; never send this fork's PRs upstream.
+
+### Using this fork with OmniWM
+
+**Download a test app without installing Xcode:** Open this fork's
+[Build OmniWM app workflow](https://github.com/jadewisemann/AeroSpaceBar--omniwm/actions/workflows/build-omniwm.yaml),
+select a successful run, and download **AeroSpaceBar-OmniWM-arm64** from Artifacts (GitHub login required).
+Extract the artifact, then extract `AeroSpaceBar-OmniWM-arm64.zip` inside it. Quit any running AeroSpaceBar
+and open the extracted app. Enable **Enable IPC** in OmniWM before testing workspace/window clicks.
+If macOS blocks this ad-hoc signed, non-notarized build, use System Settings → Privacy & Security →
+**Open Anyway** after attempting to launch it. Grant the app's requested Accessibility and Screen Recording permissions.
+
+The workflow runs the OmniWM integration tests and builds an Apple Silicon Release app on pushes to
+`develop` or `codex/**`, or via **Run workflow**. Artifacts expire after 14 days; rerun the workflow
+to create a new download. It needs no signing secrets and does not publish a release or update a Homebrew tap.
+The inherited upstream Release workflow is disabled in this fork.
+
+To build locally instead:
+
+1. Install and launch a current OmniWM release with `omniwmctl` support, including the `window-id`
+   query field and `is-current` workspace field.
+2. Turn on **Enable IPC** in OmniWM's menu. Confirm `omniwmctl query windows` and
+   `omniwmctl query workspaces` succeed.
+3. Build this checkout with `./Scripts/build.sh -c Debug` using a full Xcode installation with Swift 6.2+.
+4. Launch `build/Build/Products/Debug/AeroSpaceBar.app`. In General → OmniWM, the path is
+   auto-detected from Homebrew, `~/.local/bin`, or the app bundle; browse to `omniwmctl` if needed.
+
+`OmniWMRepository` implements the existing `SpacesGateway`. `OmniWMClient` queries workspaces/windows,
+subscribes to IPC changes, reconnects after restarts, and navigates using session-scoped window IDs.
+CGWindowIDs remain the UI identity; empty workspaces and windows on inactive workspaces are retained.
+The current interaction workspace is highlighted even when it is empty. Existing sorting, hover,
+click settings, backgrounds, transitions, and per-space colors remain in the original presentation pipeline.
+The adapter coalesces events for 150 ms and uses a five-second safety refresh.
+
+The existing `aerospace-path` TOML key now stores the `omniwmctl` path for configuration compatibility.
+Saved paths ending in `aerospace` are automatically replaced with OmniWM detection. **Open Configuration**
+opens `$XDG_CONFIG_HOME/omniwm/settings.toml` (default `~/.config/omniwm/settings.toml`).
+The fork does not install AeroSpace hooks or rewrite OmniWM settings. The legacy performance toggle
+is disabled because OmniWM always uses subscriptions. AeroSpace itself is not required.
+
+The updater points only to this fork's `omniwm-appcast.xml`, initially an empty feed. Before publishing
+updates, configure the fork's own Sparkle signing key and release process; never add upstream binaries
+to that feed. Until the feed is published, update checks may report it unavailable. The upstream
+installation/release instructions below are retained as historical documentation, not instructions
+for installing the OmniWM fork.
+
+Focused adapter tests: `swift test --package-path Packages/Data --filter OmniWM`.
+
+---
+
 <!-- markdownlint-disable-next-line MD041 -->
 <div align="center">
 <img src="Docs/Assets/AeroSpaceBar-macOS-Default-512x512@1x.png" alt="AeroSpaceBar App Icon" width="128" height="128">

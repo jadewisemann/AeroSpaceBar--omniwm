@@ -1,5 +1,11 @@
 # CLAUDE.md
 
+## Fork boundary
+
+- This is `jadewisemann/AeroSpaceBar--omniwm`, an OmniWM integration fork.
+- Never open pull requests against the original/upstream AeroSpaceBar repository.
+- Preserve the upstream bar's appearance, animations, and interactions. Adapt the window-manager data boundary.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Build & Development Commands

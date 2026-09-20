@@ -50,15 +50,12 @@ public class SettingsViewModel: ObservableObject {
         }
     }
 
-    /// The current AeroSpace version (if available).
+    /// The current OmniWM version (the property name preserves the existing settings bindings).
     @Published var aeroSpaceVersion: String?
 
-    /// Whether the running AeroSpace supports the event-subscription API.
-    ///
-    /// When it does, the app is driven by AeroSpace events and the optimized
-    /// performance setting no longer has any effect.
+    /// OmniWM always uses IPC subscriptions, so the legacy performance toggle has no effect.
     var supportsEventSubscription: Bool {
-        AeroSpaceVersion(string: aeroSpaceVersion)?.supportsEventSubscription ?? false
+        true
     }
 
     /// The path to the configuration file.

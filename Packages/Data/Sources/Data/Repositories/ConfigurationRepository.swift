@@ -376,7 +376,12 @@ public final class ConfigurationRepository: ConfigurationGateway {
 
         set {
             showWindowTitlesSubject.send(newValue.showWindowTitles)
-            aeroSpacePathSubject.send(newValue.aeroSpacePath)
+            // Keep the existing TOML key so appearance configurations remain compatible.
+            let path = newValue.aeroSpacePath
+            aeroSpacePathSubject.send(
+                path.isEmpty || URL(fileURLWithPath: path).lastPathComponent == "aerospace"
+                    ? resolveAeroSpacePath() : path
+            )
             themeModeSubject.send(newValue.themeMode)
             themePresetColorPropertiesSubject.send(newValue.themePresetColorProperties)
             themePresetGeometricPropertiesSubject.send(newValue.themePresetGeometricProperties)
@@ -539,22 +544,10 @@ public final class ConfigurationRepository: ConfigurationGateway {
         themePresetEffectPropertiesSubject.send(ConfigurationDefaults.themePresetEffectProperties)
     }
 
-    /// Resolves the AeroSpace path following the expected initialization logic.
-    /// - Returns: A valid AeroSpace path or empty string if not found
+    /// Resolves omniwmctl while retaining the configuration gateway's existing API.
+    /// - Returns: The detected path or the default Homebrew location.
     private func resolveAeroSpacePath() -> String {
-        let defaultPath = "/opt/homebrew/bin/aerospace"
-        let candidates = [
-            defaultPath,
-            "/usr/local/bin/aerospace"
-        ]
-
-        for candidate in candidates where FileManager.default.isExecutableFile(atPath: candidate) {
-            Logger.info("Auto-detected AeroSpace at: \(candidate)", category: Logger.config)
-            return candidate
-        }
-
-        Logger.info("No AeroSpace executable found, using default path", category: Logger.config)
-        return defaultPath
+        OmniWMClient.executablePath()
     }
 
     /// Sets whether to show window titles and emits update.
@@ -1046,66 +1039,33 @@ public final class ConfigurationRepository: ConfigurationGateway {
             .store(in: &cancellables)
     }
 
-    /// Gets the version of the AeroSpace binary at the specified path.
-    /// - Parameter path: The path to check for AeroSpace version
+    /// Gets the OmniWM version through its CLI.
+    /// - Parameter path: The path to omniwmctl.
     /// - Returns: The version string if found, nil otherwise
     private func getAeroSpaceVersion(at path: String) async -> String? {
-        if path.isEmpty {
-            return nil
-        }
+        guard !path.isEmpty else { return nil }
 
         do {
-            let cli = AeroSpaceCLIClient(executablePath: path)
-            let data = try await cli.execute(arguments: ["--version"])
-
-            if
-                let output = String(data: data, encoding: .utf8)?
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-            {
-                // Extract just the CLI client version from the first line
-                let lines = output.components(separatedBy: .newlines)
-                if let firstLine = lines.first {
-                    // Look for "aerospace CLI client version: " and extract what follows
-                    let prefix = "aerospace CLI client version: "
-                    if firstLine.hasPrefix(prefix) {
-                        let fullVersion = String(firstLine.dropFirst(prefix.count))
-                        // Extract only the version number (before the SHA)
-                        let components = fullVersion.components(separatedBy: " ")
-                        if let versionNumber = components.first {
-                            Logger.info(
-                                "AeroSpace version detected: \(versionNumber)",
-                                category: Logger.config
-                            )
-                            return versionNumber
-                        }
-                    }
-                }
-            }
+            let data = try await OmniWMClient().execute(executablePath: path, arguments: ["version", "--json"])
+            return try JSONDecoder().decode(OmniWMResponse<OmniWMVersion>.self, from: data).payload().appVersion
         } catch {
-            Logger.warning(
-                "Failed to get AeroSpace version: \(error.localizedDescription)",
-                category: Logger.config
-            )
+            Logger.warning("Failed to get OmniWM version: \(error.localizedDescription)", category: Logger.config)
+            return nil
         }
-
-        return nil
     }
 
-    /// Opens the AeroSpace configuration file.
-    /// If no config file exists, creates a default one.
-    public func openAeroSpaceConfig() async {
-        let configPath = await getAeroSpaceConfigPath()
+    /// Opens OmniWM's configuration using the existing settings action.
+    public func openAeroSpaceConfig() {
+        let configPath = getAeroSpaceConfigPath()
         NSWorkspace.shared.open(configPath)
     }
 
-    /// Gets the AeroSpace configuration file path, creating a default one if needed
-    public func getAeroSpaceConfigPath() async -> URL {
-        let cliPath = await fetchAeroSpaceConfigPathFromCLI()
-        return if let path = cliPath, !path.isEmpty {
-            URL(fileURLWithPath: path)
-        } else {
-            URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(".aerospace.toml")
-        }
+    /// Resolves OmniWM's settings file without modifying it.
+    public func getAeroSpaceConfigPath() -> URL {
+        let configuredBase = ProcessInfo.processInfo.environment["XDG_CONFIG_HOME"]
+        let base = configuredBase.flatMap { $0.hasPrefix("/") ? URL(fileURLWithPath: $0) : nil }
+            ?? FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".config")
+        return base.appendingPathComponent("omniwm/settings.toml")
     }
 
     /// Gets the configuration file path.
@@ -1117,24 +1077,6 @@ public final class ConfigurationRepository: ConfigurationGateway {
     public func openConfigFile() {
         let configPath = getConfigFilePath()
         NSWorkspace.shared.open(URL(fileURLWithPath: configPath))
-    }
-
-    /// Ask AeroSpace CLI for the effective config path
-    private func fetchAeroSpaceConfigPathFromCLI() async -> String? {
-        let executablePath = aeroSpacePathSubject.value
-        do {
-            let cli = AeroSpaceCLIClient(executablePath: executablePath)
-            let data = try await cli.execute(arguments: ["config", "--config-path"])
-            return String(data: data, encoding: .utf8)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        } catch {
-            Logger.error(
-                "Failed to obtain AeroSpace config path from CLI",
-                error: error,
-                category: Logger.config
-            )
-            return nil
-        }
     }
 
     /// Resets all configuration settings to their default values.

@@ -26,7 +26,7 @@ public struct Space: VisualContainer {
         defaultGlobalGeometricProperties: ConfigurationDefaults.spaceGeometricProperties,
         canDeleteEntity: { _ in false }, // Spaces cannot be deleted
         footerText: String(localized: LocalizedStringResource(
-            "Spaces cannot be deleted or added manually - they are managed by AeroSpace."
+            "Spaces cannot be deleted or added manually - they are managed by OmniWM."
         )),
         resetAlertTitle: String(localized: LocalizedStringResource("Reset Spaces")),
         resetAlertMessage: String(localized: LocalizedStringResource(

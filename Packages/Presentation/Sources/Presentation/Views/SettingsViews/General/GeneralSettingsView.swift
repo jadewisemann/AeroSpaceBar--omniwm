@@ -168,7 +168,7 @@ struct GeneralSettingsView: View {
             }
             .tag("general-permissions-section")
 
-            Section(LocalizedStringResource("AeroSpace")) {
+            Section(LocalizedStringResource("OmniWM")) {
                 VStack(alignment: .leading) {
                     HStack {
                         Text(LocalizedStringResource("Path"))
@@ -208,7 +208,7 @@ struct GeneralSettingsView: View {
 
                     Text(
                         LocalizedStringResource(
-                            "Path to the AeroSpace binary. Leave empty to auto-detect from common locations."
+                            "Path to the omniwmctl binary. Leave empty to auto-detect from common locations."
                         )
                     )
                     .secondaryText()
@@ -223,7 +223,7 @@ struct GeneralSettingsView: View {
                                 .foregroundColor(.green)
                                 .tag("general-aerospace-status-success-icon")
 
-                            Text(LocalizedStringResource("AeroSpace version: \(version)"))
+                            Text(LocalizedStringResource("OmniWM version: \(version)"))
                                 .successText(isSelectable: true)
                                 .tag("general-aerospace-version-success")
                         } else {
@@ -231,7 +231,7 @@ struct GeneralSettingsView: View {
                                 .foregroundColor(.red)
                                 .tag("general-aerospace-status-error-icon")
 
-                            Text(LocalizedStringResource("AeroSpace Not Found"))
+                            Text(LocalizedStringResource("OmniWM unavailable — start OmniWM and enable IPC"))
                                 .errorText(isSelectable: true)
                                 .tag("general-aerospace-not-found-error")
                         }

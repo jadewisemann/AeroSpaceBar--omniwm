@@ -1,0 +1,84 @@
+name: Build OmniWM app
+
+on:
+  push:
+    branches: [develop, 'codex/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: omniwm-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.repository == 'jadewisemann/AeroSpaceBar--omniwm'
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Prepare build tools
+        run: |
+          xcodebuild -version
+          swift --version
+          brew install swiftformat swiftlint
+
+      - name: Test OmniWM integration
+        run: |
+          set -o pipefail
+          mkdir -p build/ci-logs
+          swift test --package-path Packages/Data --filter OmniWM 2>&1 | tee build/ci-logs/tests.log
+
+      - name: Build app for Apple Silicon
+        run: |
+          set -o pipefail
+          xcodebuild -project AeroSpaceBar.xcodeproj \
+            -scheme AeroSpaceBar -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO DEVELOPMENT_TEAM= \
+            build 2>&1 | tee build/ci-logs/build.log
+
+      - name: Sign and package test app
+        run: |
+          app=build/Build/Products/Release/AeroSpaceBar.app
+          codesign --force --deep --sign - "$app"
+          codesign --verify --deep --strict "$app"
+          mkdir -p build/artifacts
+          ditto -c -k --sequesterRsrc --keepParent "$app" \
+            build/artifacts/AeroSpaceBar-OmniWM-arm64.zip
+          shasum -a 256 build/artifacts/AeroSpaceBar-OmniWM-arm64.zip \
+            > build/artifacts/SHA256SUMS.txt
+          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+          Download **AeroSpaceBar-OmniWM-arm64** below, then extract the app ZIP.
+          Quit any running AeroSpaceBar before opening this build.
+          Start OmniWM and enable **Enable IPC** in its menu.
+
+          This is an ad-hoc signed test build, without Apple notarization.
+          If macOS blocks it, use System Settings → Privacy & Security → Open Anyway.
+          No Xcode installation is required to run the downloaded app.
+          SUMMARY
+
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: AeroSpaceBar-OmniWM-arm64
+          path: build/artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: omniwm-build-logs
+          path: build/ci-logs/
+          if-no-files-found: ignore
+          retention-days: 7

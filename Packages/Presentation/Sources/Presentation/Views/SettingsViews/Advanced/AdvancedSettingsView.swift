@@ -82,10 +82,10 @@ struct AdvancedSettingsView: View {
                     title: LocalizedStringResource("Enable Optimized Performance"),
                     description: viewModel.supportsEventSubscription
                         ? LocalizedStringResource(
-                            "Not needed — AeroSpaceBar is subscribed to AeroSpace's event stream."
+                            "Not needed — AeroSpaceBar is subscribed to OmniWM's event stream."
                         )
                         : LocalizedStringResource(
-                            "Utilize AeroSpace's event system for CPU consumption optimization."
+                            "Utilize OmniWM's event system for CPU consumption optimization."
                         ),
                     isOn: $viewModel.isOptimizedPerformanceEnabled
                 )

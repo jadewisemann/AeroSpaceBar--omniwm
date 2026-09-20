@@ -12,6 +12,8 @@ on:
 
 jobs:
   release:
+    # This inherited workflow publishes upstream binaries and updates the upstream tap.
+    if: github.repository == 'rdrkr/AeroSpaceBar'
     name: Create Release
     runs-on: macos-26
     permissions:

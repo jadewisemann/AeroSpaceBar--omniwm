@@ -26,13 +26,10 @@ public final class DependencyContainer {
     ///
     /// This service is lazily initialized and provides access to spaces data
     /// and window management functionality.
-    private lazy var spacesGateway: SpacesGateway = AeroSpaceRepository(
+    private lazy var spacesGateway: SpacesGateway = OmniWMRepository(
         iconCache: iconCache,
         getAeroSpacePathUseCase: makeGetAeroSpacePathUseCase(),
-        getAeroSpaceConfigPathUseCase: makeGetAeroSpaceConfigPathUseCase(),
-        getOptimizedPerformanceEnabledUseCase: makeGetOptimizedPerformanceEnabledUseCase(),
-        getSpacesColorPropertiesUseCase: makeGetSpacesColorPropertiesUseCase(),
-        getAeroSpaceVersionUseCase: makeGetAeroSpaceVersionUseCase()
+        getSpacesColorPropertiesUseCase: makeGetSpacesColorPropertiesUseCase()
     )
 
     /// The configuration gateway for managing application settings.
