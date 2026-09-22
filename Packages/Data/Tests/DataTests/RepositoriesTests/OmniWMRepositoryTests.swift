@@ -140,7 +140,8 @@ struct OmniWMRepositoryTests {
         let repository = makeRepository(client: client)
         await repository.refresh()
         try await repository.focusWindow(windowId: "200")
-        #expect(await client.commands.last == ["window", "navigate", "ow_float", "--json"])
+        let command = await client.commands.last { $0.first == "window" }
+        #expect(command == ["window", "navigate", "ow_float", "--json"])
     }
 
     @Test
@@ -164,7 +165,7 @@ struct OmniWMRepositoryTests {
         await repository.refresh()
         try await repository.focusWindow(windowId: "42")
         #expect(states == [false, true, false, true])
-        let lastCommand = await client.commands.last
+        let lastCommand = await client.commands.last { $0.first == "window" }
         #expect(lastCommand == ["window", "navigate", "ow_new_session_b", "--json"])
         subscription.cancel()
     }

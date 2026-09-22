@@ -16,7 +16,7 @@ public final class OmniWMRepository: SpacesGateway {
     private var colors: [ColorProperties] = []
     private var windowTargets: [String: String] = [:]
     private var nativeWindowTargets: [String: OmniWMNativeWindow] = [:]
-    var nativeWindowProvider: (Set<Int>) -> [OmniWMNativeWindow] = OmniWMNativeWindow.read
+    var nativeWindowProvider: @MainActor (Set<Int>) -> [OmniWMNativeWindow] = OmniWMNativeWindow.read
     private var cancellables: Set<AnyCancellable> = []
     private var eventTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
