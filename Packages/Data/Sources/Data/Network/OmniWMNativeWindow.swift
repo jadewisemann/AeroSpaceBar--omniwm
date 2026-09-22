@@ -72,6 +72,11 @@ struct OmniWMNativeWindow: Sendable {
 
     @MainActor
     func focus() throws {
+        guard MenuBarItemsAccessibilityReader.isTrusted else {
+            MenuBarItemsAccessibilityReader.requestTrust()
+            throw OmniWMError.accessibilityPermissionRequired
+        }
+
         let application = Self.applicationElement(pid)
         var value: CFTypeRef?
         guard

@@ -26,6 +26,7 @@ struct OmniWMResponse<Payload: Decodable & Sendable>: Decodable, Sendable {
 enum OmniWMError: LocalizedError {
     case requestFailed(String?)
     case missingWindow
+    case accessibilityPermissionRequired
 
     var errorDescription: String? {
         switch self {
@@ -35,7 +36,10 @@ enum OmniWMError: LocalizedError {
             ))
 
         case .missingWindow:
-            String(localized: LocalizedStringResource("This window is no longer available in OmniWM."))
+            String(localized: LocalizedStringResource("This window is no longer available."))
+
+        case .accessibilityPermissionRequired:
+            String(localized: LocalizedStringResource("Enable Accessibility permission to focus this window."))
         }
     }
 }
