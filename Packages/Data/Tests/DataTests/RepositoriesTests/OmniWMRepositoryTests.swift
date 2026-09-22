@@ -28,13 +28,15 @@ struct OmniWMRepositoryTests {
 
     private func makeRepository(client: MockOmniWMClient, startMonitoring: Bool = false) -> OmniWMRepository {
         let configuration = MockConfigurationGateway()
-        return OmniWMRepository(
+        let repository = OmniWMRepository(
             iconCache: MockIconCache(),
             getAeroSpacePathUseCase: GetAeroSpacePathUseCase(configurationGateway: configuration),
             getSpacesColorPropertiesUseCase: GetSpacesColorPropertiesUseCase(configurationGateway: configuration),
             client: client,
             startMonitoring: startMonitoring
         )
+        repository.nativeWindowProvider = { _ in [] }
+        return repository
     }
 
     @Test
@@ -76,6 +78,69 @@ struct OmniWMRepositoryTests {
         await repository.refresh()
         #expect(snapshots.count == 2) // Initial empty value and one populated snapshot.
         subscription.cancel()
+    }
+
+    @Test
+    func `Workspace events update selection synchronously and clear the previous window highlight`() async {
+        let client = MockOmniWMClient(workspaces: Self.workspaces, windows: Self.windows)
+        let repository = makeRepository(client: client)
+        await repository.refresh()
+        var spaces: [Space] = []
+        let subscription = repository.spacesWithWindowsPublisher.sink { spaces = $0 }
+        repository.receiveEvent(Data("""
+        {"ok":true,"channel":"active-workspace","result":{"payload":{"workspace":{"rawName":"2"}}}}
+        """.utf8))
+        #expect(spaces.filter(\.isFocused).map(\.id) == ["2"])
+        #expect(spaces.flatMap(\.windows).allSatisfy { !$0.isFocused })
+        repository.receiveEvent(Data("""
+        {"ok":true,"channel":"active-workspace","result":{"payload":{"workspace":{"rawName":"1"}}}}
+        """.utf8))
+        #expect(spaces.filter(\.isFocused).map(\.id) == ["1"])
+        subscription.cancel()
+    }
+
+    @Test
+    func `Unmanaged settings windows follow the visible workspace without duplicating managed windows`() throws {
+        let decoder = JSONDecoder()
+        let workspaces = Data("""
+        {"workspaces":[
+          {"id":"uuid-1","rawName":"1","isCurrent":true,"isVisible":true,"display":{"id":"display:1"}},
+          {"id":"uuid-2","rawName":"2","isCurrent":false,"isVisible":true,"display":{"id":"display:2"}},
+          {"id":"uuid-3","rawName":"3","isCurrent":false,"isVisible":false,"display":{"id":"display:2"}}
+        ]}
+        """.utf8)
+        let snapshot = try OmniWMSnapshot(
+            workspaces: decoder.decode(OmniWMWorkspaces.self, from: workspaces),
+            windows: decoder.decode(OmniWMResponse<OmniWMWindows>.self, from: Self.windows).payload()
+        )
+        let settings = OmniWMNativeWindow(
+            id: 200, pid: 2, appName: "System Settings", title: "Settings", displayID: "display:2", isFocused: true
+        )
+        let duplicate = OmniWMNativeWindow(
+            id: 42, pid: 3, appName: "Safari", title: "Second", displayID: "display:1", isFocused: false
+        )
+        let spaces = snapshot.spaces(nativeWindows: [settings, duplicate])
+        #expect(spaces[0].windows.map(\.id) == [12, 42])
+        #expect(spaces[0].windows.allSatisfy { !$0.isFocused })
+        #expect(spaces[1].windows.map(\.id) == [200])
+        #expect(spaces[1].windows[0].isFocused)
+        #expect(spaces[1].windows[0].workspace == "2")
+        #expect(spaces[2].windows.isEmpty)
+        #expect(snapshot.spaces().flatMap(\.windows).allSatisfy { $0.id != 200 })
+    }
+
+    @Test
+    func `Managed floating windows retain their OmniWM navigation target`() async throws {
+        let client = MockOmniWMClient(workspaces: Self.workspaces, windows: Data("""
+        {"ok":true,"result":{"payload":{"windows":[
+          {"id":"ow_float","windowId":200,"workspace":{"id":"uuid-2"},
+           "app":{"name":"Settings"},"title":"Settings","isFocused":true,"mode":"floating"}
+        ]}}}
+        """.utf8))
+        let repository = makeRepository(client: client)
+        await repository.refresh()
+        try await repository.focusWindow(windowId: "200")
+        #expect(await client.commands.last == ["window", "navigate", "ow_float", "--json"])
     }
 
     @Test

@@ -51,11 +51,11 @@ public struct OmniWMClient: OmniWMClientProtocol {
         return output
     }
 
-    /// Streams every state channel; reconnection is owned by the repository.
+    /// Streams changes used by the bar, avoiding per-frame layout events; the repository reconnects.
     public func events(executablePath: String) -> AsyncThrowingStream<Data, Error> {
         let process = Self.process(
             executablePath: executablePath,
-            arguments: ["subscribe", "--all", "--format", "ndjson"]
+            arguments: ["subscribe", "focus,active-workspace,windows-changed,display-changed", "--format", "ndjson"]
         )
         return AsyncThrowingStream { continuation in
             let task = Task.detached {

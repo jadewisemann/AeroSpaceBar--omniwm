@@ -35,7 +35,17 @@ subscribes to IPC changes, reconnects after restarts, and navigates using sessio
 CGWindowIDs remain the UI identity; empty workspaces and windows on inactive workspaces are retained.
 The current interaction workspace is highlighted even when it is empty. Existing sorting, hover,
 click settings, backgrounds, transitions, and per-space colors remain in the original presentation pipeline.
-The adapter coalesces events for 150 ms and uses a five-second safety refresh.
+Workspace events update the selected pill immediately, without waiting for a window query or a debounce timer.
+Refreshes start immediately and coalesce requests received during I/O; a five-second safety refresh remains.
+Only focus, active-workspace, window-list, and display changes are subscribed to, avoiding layout-animation traffic.
+
+`OmniWMNativeWindow` supplements the managed list with visible, normal-layer macOS app windows such as Settings.
+These unmanaged windows appear in the visible workspace on their display and follow it when workspaces switch;
+OmniWM still owns the placement of managed floating windows. Clicking an unmanaged window uses Accessibility
+to raise its exact CGWindowID (via the macOS `_AXUIElementGetWindow` bridge), so Accessibility permission is required.
+Screen Recording permission allows macOS to provide their window titles. App activation/hide/quit notifications
+also refresh the list. Unmanaged windows that are hidden, minimized, or on another native macOS Space are not listed;
+same-app window creation/closure without an OmniWM event or app notification is caught by the safety refresh.
 
 The existing `aerospace-path` TOML key now stores the `omniwmctl` path for configuration compatibility.
 Saved paths ending in `aerospace` are automatically replaced with OmniWM detection. **Open Configuration**

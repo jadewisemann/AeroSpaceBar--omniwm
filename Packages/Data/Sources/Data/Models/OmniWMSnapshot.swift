@@ -10,6 +10,7 @@ struct OmniWMResponse<Payload: Decodable & Sendable>: Decodable, Sendable {
     }
 
     let ok: Bool
+    let channel: String?
     let code: String?
     let result: Result?
 
@@ -40,13 +41,27 @@ enum OmniWMError: LocalizedError {
 }
 
 struct OmniWMWorkspaces: Decodable, Sendable {
+    struct Display: Decodable, Sendable {
+        let id: String
+    }
+
     struct Workspace: Decodable, Sendable {
         let id: String
         let rawName: String
         let isCurrent: Bool
+        let isVisible: Bool?
+        let display: Display?
     }
 
     let workspaces: [Workspace]
+}
+
+struct OmniWMActiveWorkspace: Decodable, Sendable {
+    struct Workspace: Decodable, Sendable {
+        let rawName: String
+    }
+
+    let workspace: Workspace?
 }
 
 struct OmniWMWindows: Decodable, Sendable {
@@ -79,23 +94,39 @@ struct OmniWMSnapshot: Sendable {
         windows.windows.reduce(into: [:]) { $0[String($1.windowId)] = $1.id }
     }
 
-    func spaces() -> [Space] {
+    func spaces(nativeWindows: [OmniWMNativeWindow] = []) -> [Space] {
         let grouped = Dictionary(grouping: windows.windows, by: { $0.workspace?.id })
+        let managedIDs = Set(windows.windows.map(\.windowId))
+        let nativeWindowFocused = nativeWindows.contains(where: \.isFocused)
+        let nativeGrouped = Dictionary(grouping: nativeWindows.filter { !managedIDs.contains($0.id) }) { window in
+            workspaces.workspaces
+                .first { workspace in
+                    workspace.isVisible == true && window.displayID != nil && workspace.display?.id == window.displayID
+                }?.id ?? workspaces.workspaces.first(where: \.isCurrent)?.id
+        }
         return workspaces.workspaces
             .map { workspace in
                 Space(
                     id: workspace.rawName,
                     isFocused: workspace.isCurrent,
-                    windows: (grouped[workspace.id] ?? [])
+                    windows: ((grouped[workspace.id] ?? [])
                         .map { window in
                             Window(
                                 id: window.windowId,
                                 title: window.title ?? "",
                                 appName: window.app?.name,
+                                isFocused: window.isFocused && !nativeWindowFocused,
+                                workspace: workspace.rawName
+                            )
+                        } + (nativeGrouped[workspace.id] ?? []).map { window in
+                            Window(
+                                id: window.id,
+                                title: window.title,
+                                appName: window.appName,
                                 isFocused: window.isFocused,
                                 workspace: workspace.rawName
                             )
-                        }
+                        })
                         .sorted { $0.id < $1.id }
                 )
             }

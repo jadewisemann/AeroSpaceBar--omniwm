@@ -15,6 +15,8 @@ public final class OmniWMRepository: SpacesGateway {
     private var executablePath: String
     private var colors: [ColorProperties] = []
     private var windowTargets: [String: String] = [:]
+    private var nativeWindowTargets: [String: OmniWMNativeWindow] = [:]
+    var nativeWindowProvider: (Set<Int>) -> [OmniWMNativeWindow] = OmniWMNativeWindow.read
     private var cancellables: Set<AnyCancellable> = []
     private var eventTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
@@ -62,6 +64,7 @@ public final class OmniWMRepository: SpacesGateway {
                     executablePath = path
                     generation += 1
                     windowTargets = [:]
+                    nativeWindowTargets = [:]
                     if startMonitoring {
                         monitor()
                     }
@@ -82,6 +85,19 @@ public final class OmniWMRepository: SpacesGateway {
             .store(in: &cancellables)
 
         if startMonitoring {
+            let center = NSWorkspace.shared.notificationCenter
+            for name in [
+                NSWorkspace.didActivateApplicationNotification,
+                NSWorkspace.didTerminateApplicationNotification,
+                NSWorkspace.didHideApplicationNotification,
+                NSWorkspace.didUnhideApplicationNotification
+            ] {
+                center.publisher(for: name)
+                    .sink { [weak self] _ in
+                        Task { @MainActor [weak self] in self?.scheduleRefresh() }
+                    }
+                    .store(in: &cancellables)
+            }
             monitor()
         }
     }
@@ -103,6 +119,11 @@ public final class OmniWMRepository: SpacesGateway {
 
     /// Navigates to a window using its session-scoped OmniWM ID, switching workspaces when needed.
     public func focusWindow(windowId: String) async throws {
+        if let window = nativeWindowTargets[windowId] {
+            try window.focus()
+            scheduleRefresh()
+            return
+        }
         guard let target = windowTargets[windowId] else { throw OmniWMError.missingWindow }
 
         _ = try await client.execute(
@@ -158,8 +179,13 @@ public final class OmniWMRepository: SpacesGateway {
             guard requestGeneration == generation, !Task.isCancelled else { return }
 
             let snapshot = OmniWMSnapshot(workspaces: workspaces, windows: windows)
+            let nativeWindows = nativeWindowProvider(Set(windows.windows.map(\.windowId)))
             windowTargets = snapshot.windowTargets
-            publish(snapshot.spaces())
+            nativeWindowTargets = Dictionary(
+                nativeWindows.map { (String($0.id), $0) },
+                uniquingKeysWith: { first, _ in first }
+            )
+            publish(snapshot.spaces(nativeWindows: nativeWindows))
             runningSubject.send(true)
         } catch {
             guard requestGeneration == generation, !Task.isCancelled else { return }
@@ -186,18 +212,48 @@ public final class OmniWMRepository: SpacesGateway {
     private func disconnected() {
         generation += 1
         windowTargets = [:]
+        nativeWindowTargets = [:]
         runningSubject.send(false)
     }
 
     private func scheduleRefresh() {
-        // A fixed coalescing window avoids starving refreshes during continuous animation events.
+        // Start immediately; refresh() folds signals received during I/O into one follow-up request.
+        if refreshing {
+            refreshAgain = true
+            return
+        }
         guard refreshTask == nil else { return }
 
         refreshTask = Task { [weak self] in
-            do { try await Task.sleep(for: .milliseconds(150)) } catch { return }
+            guard !Task.isCancelled else { return }
+
             self?.refreshTask = nil
             await self?.refresh()
         }
+    }
+
+    /// Applies the interaction workspace before querying the full window list.
+    func receiveEvent(_ data: Data) {
+        if
+            let response = try? JSONDecoder().decode(OmniWMResponse<OmniWMActiveWorkspace>.self, from: data),
+            response.ok, response.channel == "active-workspace",
+            let workspace = response.result?.payload.workspace,
+            spacesSubject.value.contains(where: { $0.id == workspace.rawName })
+        {
+            // An in-flight snapshot predates this event and must not restore the previous selection.
+            generation += 1
+            var spaces = spacesSubject.value
+            for index in spaces.indices {
+                spaces[index].isFocused = spaces[index].id == workspace.rawName
+                if !spaces[index].isFocused {
+                    for windowIndex in spaces[index].windows.indices {
+                        spaces[index].windows[windowIndex].isFocused = false
+                    }
+                }
+            }
+            spacesSubject.send(spaces)
+        }
+        scheduleRefresh()
     }
 
     private func monitor() {
@@ -208,10 +264,10 @@ public final class OmniWMRepository: SpacesGateway {
         eventTask = Task { [weak self] in
             while !Task.isCancelled {
                 do {
-                    for try await _ in client.events(executablePath: path) {
+                    for try await event in client.events(executablePath: path) {
                         guard !Task.isCancelled else { return }
 
-                        self?.scheduleRefresh()
+                        self?.receiveEvent(event)
                     }
                 } catch {
                     Logger.debug("OmniWM event stream disconnected", category: Logger.spaces)
